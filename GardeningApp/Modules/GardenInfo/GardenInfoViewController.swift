@@ -6,9 +6,10 @@
 //
 
 import UIKit
+import SnapKit
 
 protocol GardenInfoViewProtocol: AnyObject {
-    func showPlantInfo(plant: PlantObject)
+    func showPlantInfo(plant: PlantViewModel)
 }
 
 class GardenInfoViewController: UIViewController {
@@ -24,13 +25,13 @@ class GardenInfoViewController: UIViewController {
 
     private let containerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .accentDark
+        view.backgroundColor = Constants.contentViewColor
         return view
     }()
 
-    private let plantNameLabel = CustomLabel(fontName: UIFont.largeTitle(), textColor: .accentLight, textAlignment: .left)
-    private let plantAgeLabel = CustomLabel(fontName: UIFont.body(), textColor: .accentLight.withAlphaComponent(0.6), textAlignment: .left)
-    private let plantDescription = CustomLabel(fontName: UIFont.body(),text: "Your observations and notes on flower care could have been here, but you didn't add them😔" ,textColor: .accentLight.withAlphaComponent(0.6), textAlignment: .left)
+    private let plantNameLabel = CustomLabel(fontName: Constants.nameFont, textColor: Constants.textColor, textAlignment: .left)
+    private let plantAgeLabel = CustomLabel(fontName: Constants.ageFont, textColor: Constants.lightTextColor, textAlignment: .left)
+    private let plantDescription = CustomLabel(fontName: Constants.descriptionFont, text: "" ,textColor: Constants.lightTextColor, textAlignment: .left)
     private let scrollView = UIScrollView()
     private let emptyView = UIView()
 
@@ -44,31 +45,52 @@ class GardenInfoViewController: UIViewController {
 
 // MARK: - Private functions
 private extension GardenInfoViewController {
+    
+    private enum Constants {
+        static let topInset: CGFloat = 20
+        static let horizontalInsets: CGFloat = 20
+        static let bottomInset: CGFloat = 10
+        static let imageViewWidthConstraint: CGFloat = 150
+        static let contentViewColor: UIColor = .light
+        static let imageHeightDivider: CGFloat = 2.5
+        static let viewDivider: CGFloat = 2
+        static let nameFont: UIFont = .largeTitle()
+        static let ageFont: UIFont = .body()
+        static let descriptionFont: UIFont = .body()
+        static let textColor: UIColor = .dark
+        static let lightTextColor: UIColor = .dark.withAlphaComponent(0.6)
+
+    }
+
     func initialize() {
-        view.backgroundColor = .accentDark
+        view.backgroundColor = Constants.contentViewColor
         setupViews()
     }
 
     private func setupViews() {
+        emptyView.backgroundColor = .clear
+
+        let textStackView = UIStackView(arrangedSubviews: [plantNameLabel, plantAgeLabel, plantDescription])
+        textStackView.axis = .vertical
+        textStackView.distribution = .fill
+        textStackView.alignment = .leading
+        textStackView.spacing = 10
 
         [imageView, scrollView].forEach { item in
             view.addSubview(item)
         }
-       
+
         view.sendSubviewToBack(imageView)
 
         [emptyView, containerView].forEach { item in
             scrollView.addSubview(item)
         }
-        emptyView.backgroundColor = .clear
 
-        [plantNameLabel, plantAgeLabel, plantDescription].forEach { item in
-            containerView.addSubview(item)
-        }
+        containerView.addSubview(textStackView)
 
         imageView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview()
-            make.height.equalToSuperview().dividedBy(2.5)
+            make.top.horizontalEdges.equalToSuperview()
+            make.height.equalToSuperview().dividedBy(Constants.imageHeightDivider)
         }
 
         scrollView.snp.makeConstraints { make in
@@ -76,41 +98,30 @@ private extension GardenInfoViewController {
         }
 
         emptyView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview()
-            make.height.equalToSuperview().dividedBy(2)
+            make.top.horizontalEdges.equalToSuperview()
+            make.height.equalToSuperview().dividedBy(Constants.viewDivider)
 
         }
         containerView.snp.makeConstraints { make in
             make.top.equalTo(emptyView.snp.bottom)
-            make.leading.trailing.bottom.equalToSuperview()
+            make.horizontalEdges.bottom.equalToSuperview()
             make.width.equalToSuperview()
         }
 
-        plantNameLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(20)
-            make.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        plantAgeLabel.snp.makeConstraints { make in
-            make.top.equalTo(plantNameLabel.snp.bottom).offset(20)
-            make.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        plantDescription.snp.makeConstraints { make in
-            make.top.equalTo(plantAgeLabel.snp.bottom).offset(20)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.bottom.equalToSuperview()
+        textStackView.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(Constants.topInset)
+            make.horizontalEdges.equalToSuperview().inset(Constants.horizontalInsets)
+            make.bottom.equalToSuperview().inset(Constants.bottomInset)
         }
     }
 }
 
 // MARK: - GardenInfoViewProtocol
 extension GardenInfoViewController: GardenInfoViewProtocol {
-    func showPlantInfo(plant: PlantObject) {
-            self.imageView.image = plant.image
-            self.plantNameLabel.text = plant.plantName
-            self.plantAgeLabel.text = plant.plantAge
-            self.plantDescription.text = plant.plantDescription
-        }
-    
+    func showPlantInfo(plant: PlantViewModel) {
+        self.imageView.image = plant.image
+        self.plantNameLabel.text = plant.name
+        self.plantAgeLabel.text = plant.age
+        self.plantDescription.text = plant.description
+    }
 }
