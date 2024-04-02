@@ -14,7 +14,8 @@ class HomeModuleBuilder {
         let locationManager = CLLocationManager()
         let weatherManager = WeatherApiManager()
         let greetingProvider = GreetingProvider()
-        let interactor = HomeInteractor(imageProvider: imageProvider,greetingProvider: greetingProvider, locationManager: locationManager, weatherManager: weatherManager)
+        let realmManager = RealmManager<PlantObject>()
+        let interactor = HomeInteractor(imageProvider: imageProvider,greetingProvider: greetingProvider, locationManager: locationManager, weatherManager: weatherManager, realmManager: realmManager)
         let router = HomeRouter()
         let presenter = HomePresenter(interactor: interactor, router: router)
         let viewController = HomeViewController()
@@ -24,10 +25,9 @@ class HomeModuleBuilder {
         router.viewController = viewController
         let navigationController = UINavigationController(rootViewController: viewController)
         navigationController.navigationBar.prefersLargeTitles = false
-        navigationController.navigationBar.tintColor = .accentLight
-        navigationController.navigationBar.barTintColor = .accentDark
-        navigationController.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor : UIColor.accentLight]
+        navigationController.navigationBar.tintColor = .dark
+        navigationController.navigationBar.barTintColor = .light
+        navigationController.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor : UIColor.dark]
         return navigationController
-//        return viewController
     }
 }
