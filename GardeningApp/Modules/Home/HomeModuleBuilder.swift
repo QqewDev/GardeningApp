@@ -9,12 +9,13 @@ import CoreLocation
 import WeatherKit
 
 class HomeModuleBuilder {
-    static func build() -> HomeViewController {
+    static func build() -> UINavigationController {
         let imageProvider = ImageProvider()
         let locationManager = CLLocationManager()
         let weatherManager = WeatherApiManager()
         let greetingProvider = GreetingProvider()
-        let interactor = HomeInteractor(imageProvider: imageProvider,greetingProvider: greetingProvider, locationManager: locationManager, weatherManager: weatherManager)
+        let realmManager = RealmManager<PlantObject>()
+        let interactor = HomeInteractor(imageProvider: imageProvider,greetingProvider: greetingProvider, locationManager: locationManager, weatherManager: weatherManager, realmManager: realmManager)
         let router = HomeRouter()
         let presenter = HomePresenter(interactor: interactor, router: router)
         let viewController = HomeViewController()
@@ -22,6 +23,11 @@ class HomeModuleBuilder {
         viewController.presenter = presenter
         interactor.presenter = presenter
         router.viewController = viewController
-        return viewController
+        let navigationController = UINavigationController(rootViewController: viewController)
+        navigationController.navigationBar.prefersLargeTitles = false
+        navigationController.navigationBar.tintColor = .dark
+        navigationController.navigationBar.barTintColor = .light
+        navigationController.navigationBar.titleTextAttributes = [NSAttributedString.Key.foregroundColor : UIColor.dark]
+        return navigationController
     }
 }

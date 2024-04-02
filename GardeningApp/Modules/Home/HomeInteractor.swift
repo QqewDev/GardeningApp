@@ -6,12 +6,12 @@
 //
 
 import CoreLocation
-import WeatherKit
+import RealmSwift
+import UIKit
 
 protocol HomeInteractorProtocol: AnyObject {
-    func fetchCurrentTimeImage()
-    func fetchCurrentGreetings()
     func fetchCurrenLocationWeather()
+    func fetchInitialData()
 }
 
 class HomeInteractor: NSObject, HomeInteractorProtocol, CLLocationManagerDelegate {
@@ -23,26 +23,45 @@ class HomeInteractor: NSObject, HomeInteractorProtocol, CLLocationManagerDelegat
 
     private let weatherManager: WeatherApiManager
     private let locationManager: CLLocationManager
+    private let realmManager: RealmManager<PlantObject>
 
+    private var notificationToken: NotificationToken?
 
-    init(imageProvider: ImageProvider,greetingProvider: GreetingProvider, locationManager: CLLocationManager, weatherManager: WeatherApiManager) {
+    init(imageProvider: ImageProvider,
+         greetingProvider: GreetingProvider,
+         locationManager: CLLocationManager,
+         weatherManager: WeatherApiManager,
+         realmManager: RealmManager<PlantObject>
+    ) {
         self.imageProvider = imageProvider
         self.greetingProvider = greetingProvider
         self.locationManager = locationManager
         self.weatherManager = weatherManager
+        self.realmManager = realmManager
         super.init()
+        setupPlantChangeNotifications()
     }
 
-    func fetchCurrentTimeImage() {
-        let image = imageProvider.imageForCurrentTime()
-        presenter?.currentTimeImageFetched(with: image)
-    }
-
-    func fetchCurrentGreetings() {
+    func fetchInitialData(){
         let greeting = greetingProvider.greetingForCurrentTime()
-        presenter?.currentGreetingFetched(with: greeting )
+        let currentImage = imageProvider.imageForCurrentTime()
+        let userPlants = realmManager.fetchObjects()
+        let data = HomeTableViewData(greeting: greeting, image: currentImage, userPlants: userPlants)
+        presenter?.didFetchInitialData(with: data)
     }
 
+    deinit {
+        notificationToken?.invalidate()
+    }
+
+    func setupPlantChangeNotifications() {
+        notificationToken = realmManager.setupChangeNotifications(
+            onInitial: { [weak self] plants in
+            self?.presenter?.plantsFetched(with: plants)
+        }, onUpdate: { [weak self] plants, _ in
+            self?.presenter?.plantsFetched(with: plants)
+        })
+    }
 
     func fetchCurrenLocationWeather() {
         locationManager.requestWhenInUseAuthorization()
@@ -50,7 +69,7 @@ class HomeInteractor: NSObject, HomeInteractorProtocol, CLLocationManagerDelegat
         locationManager.startUpdatingLocation()
     }
 
-    private func getCurrentWeather(location: CLLocation){
+    func getCurrentWeather(location: CLLocation) {
         let weatherApiManager = WeatherApiManager()
         weatherApiManager.fetchCurrentWeather(latitude: location.coordinate.latitude, longitude: location.coordinate.latitude) { result in
             switch result {

@@ -9,33 +9,17 @@ import UIKit
 import SnapKit
 
 protocol HomeViewProtocol: AnyObject {
-    func showImageForCurrentTime(image: UIImage?)
-    func showGreetingForCurrentTime(text: String)
-    func showCurrentWeatherData(with weather: WeatherData)
+    func setCells(_ items: [TableViewCellItemModel])
+    func showCurrentWeatherData(with weather: WeatherViewModel)
+    func setPlants(with plants: [PlantViewModel])
 }
 
-class HomeViewController: UIViewController {
+class HomeViewController: UITableViewController {
     // MARK: - Public
     var presenter: HomePresenterProtocol?
 
+    private var items = [TableViewCellItemModel]()
 
-
-    private let buttonView = ButtonView()
-    private let greetingsView = GreetingsView()
-    private lazy var shadowImageView = ShadowImageView()
-    private let weatherInfoView = WeatherInfoView()
-    private let gardenHeader = GardenHeader(frame: .zero)
-    private let taskManagerButton = CustomButton(imageName: "list.number", configImagePointSize: 40, bgColor: .accent)
-    private lazy var gardenCollectionView = UICollectionView()
-
-    var plants: [Plant] = [
-        Plant(image: "noImage", name: "Fern", age: "2 years"),
-        Plant(image: "noImage", name: "Sunflower", age: "3 months"),
-        Plant(image: "noImage", name: "Fern", age: "2 years"),
-        Plant(image: "noImage", name: "Sunflower", age: "3 months"),
-        Plant(image: "noImage", name: "Fern", age: "2 years"),
-        Plant(image: "noImage", name: "Sunflower", age: "3 months"),
-    ]
 
     // MARK: - View lifecycle
     override func viewDidLoad() {
@@ -43,139 +27,108 @@ class HomeViewController: UIViewController {
         initialize()
         presenter?.viewDidLoad()
     }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        setupScroll()
+    }
+
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: items[indexPath.row].identifier) as? HomeTableViewCellItem
+        cell?.config(with: items[indexPath.row])
+        cell?.delegate = self
+        return cell as? UITableViewCell ?? UITableViewCell()
+    }
+
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return items.count
+    }
 }
 
 // MARK: - Private functions
 private extension HomeViewController {
     func initialize() {
         setupViews()
-        setupCollectionView()
-        setViewDelegate()
+        registerCells()
     }
     
-    private func setViewDelegate(){
-        gardenHeader.delegate = self
-        buttonView.delegate = self
-    }
-
     private func setupViews(){
-        view.backgroundColor = .background
-
-        view.addSubview(buttonView)
-        view.addSubview(greetingsView)
-        view.addSubview(shadowImageView)
-        view.addSubview(weatherInfoView)
-        view.addSubview(taskManagerButton)
-        view.addSubview(gardenHeader)
-
-        buttonView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide).offset(20)
-            make.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        greetingsView.snp.makeConstraints { make in
-            make.top.equalTo(buttonView.snp.bottom).offset(20)
-            make.centerX.equalToSuperview()
-        }
-
-
-        shadowImageView.snp.makeConstraints { make in
-            make.top.equalTo(greetingsView.snp.bottom).offset(20)
-            make.centerX.equalToSuperview()
-            make.size.equalTo(175).multipliedBy(2)
-        }
-
-        weatherInfoView.snp.makeConstraints { make in
-            make.top.equalTo(shadowImageView.snp.bottom).offset(20)
-            make.leading.trailing.equalToSuperview().inset(20)
-        }
-
-        gardenHeader.snp.makeConstraints { make in
-            make.top.equalTo(weatherInfoView.snp.bottom).offset(30)
-            make.leading.trailing.equalToSuperview().inset(20)
-            make.height.equalToSuperview().dividedBy(15)
-        }
-
-        taskManagerButton.snp.makeConstraints { make in
-            make.centerY.equalTo(shadowImageView.snp.centerY)
-            make.trailing.equalToSuperview()
-        }
+        view.backgroundColor = .light
+        title = "Home"
+        tableView.separatorStyle = .none
+        tableView.estimatedRowHeight = UITableView.automaticDimension
+        tableView.showsVerticalScrollIndicator = false
+        tableView.allowsSelection = false
     }
 
-    private func setupCollectionView() {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .horizontal
-        layout.sectionInset = UIEdgeInsets(top: 10, left: 20, bottom: 10, right: 20)
+    private func registerCells(){
+        tableView.register(ButtonsTableViewCell.self, forCellReuseIdentifier: "\(ButtonsTableViewCellModel.self)")
+        tableView.register(GreetingsTableViewCell.self, forCellReuseIdentifier: "\(GreetingsTableViewCellModel.self)")
+        tableView.register(ImageTableViewCell.self, forCellReuseIdentifier: "\(ImageTableViewCellModel.self)")
+        tableView.register(WeatherInfoTableViewCell.self, forCellReuseIdentifier: "\(WeatherInfoTableViewCellModel.self)")
+        tableView.register(GardenHeaderTableViewCell.self, forCellReuseIdentifier: "\(GardenHeaderTableViewCellModel.self)")
+        tableView.register(UserPlantCollectionTableViewCell.self, forCellReuseIdentifier: "\(UserPlantCollectionTableViewCellModel.self)")
+    }
 
-        gardenCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-
-        gardenCollectionView.register(PlantCell.self, forCellWithReuseIdentifier: "\(PlantCell.self)")
-        gardenCollectionView.backgroundColor = .background
-        gardenCollectionView.showsVerticalScrollIndicator = false
-        gardenCollectionView.showsHorizontalScrollIndicator = false
-
-        gardenCollectionView.dataSource = self
-        gardenCollectionView.delegate = self 
-
-        view.addSubview(gardenCollectionView)
-
-        gardenCollectionView.snp.makeConstraints { make in
-            make.top.equalTo(gardenHeader.snp.bottom).offset(10)
-            make.leading.trailing.equalToSuperview()
-            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
+    private func setupScroll(){
+        let contentHeight = tableView.contentSize.height
+        if contentHeight < tableView.frame.size.height{
+            tableView.isScrollEnabled = false
         }
     }
 }
 
-//MARK: - UICollectionViewDataSource
-extension HomeViewController: UICollectionViewDataSource{
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return plants.count
-    }
 
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "\(PlantCell.self)", for: indexPath) as? PlantCell else {
-            return UICollectionViewCell()
-        }
-        let plant = plants[indexPath.row]
-        cell.configureCell(with: plant)
-        return cell
-    }
-}
 
-extension HomeViewController: UICollectionViewDelegateFlowLayout {
-    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let width = collectionView.bounds.width / 2
-        let height = collectionView.bounds.height - 20
-        return CGSize(width: width, height: height)
+extension HomeViewController: HomeTableViewCellItemDelegate {
+    func didTapOpenTaskList(_ cell: ImageTableViewCell) {
+        presenter?.didTapTaskManagerButton()
     }
-}
-
-extension HomeViewController: HomeModuleEventsDelegate {
-    func didTapButton(sender: GardenHeader) {
-        print("Нажали добавить новое растение")
+    
+    func didTapOpenGardenInfo(_ cell: UserPlantCollectionTableViewCell, plant: PlantViewModel) {
+        presenter?.didTapOpenGardenInfo(with: plant)
     }
-
-    func didTapSearchButton(sender: ButtonView) {
-        print("Нажали на поиск")
+    
+    func didTapAddNewPlantButton(_ cell: GardenHeaderTableViewCell) {
+        presenter?.didTapAddNewPlant()
     }
-
-    func didTapNotificationButton(sender: ButtonView) {
-        print("Нажали на колокольчик")
+    
+    func didTapSearchButton(_ cell: ButtonsTableViewCell) {
+        print("Search tapped")
+    }
+    func didTapNotificationButton(_ cell: ButtonsTableViewCell) {
+        print("Notif tapped")
     }
 }
 
 // MARK: - HomeViewProtocol
 extension HomeViewController: HomeViewProtocol {
-    func showImageForCurrentTime(image: UIImage?) {
-        shadowImageView.setImage(with: image)
+
+    func setCells(_ items: [TableViewCellItemModel]) {
+        self.items = items
+        tableView.reloadData()
     }
 
-    func showGreetingForCurrentTime(text: String) {
-        greetingsView.setText(with: text)
+
+    func showCurrentWeatherData(with weather: WeatherViewModel) {
+        if let weatherInfoIndex = items.firstIndex(where: { $0 is WeatherInfoTableViewCellModel }),
+           let weatherInfoCellModel = items[weatherInfoIndex] as? WeatherInfoTableViewCellModel {
+            weatherInfoCellModel.weatherData = weather
+            let indexPath = IndexPath(row: weatherInfoIndex, section: 0)
+            DispatchQueue.main.async {
+                self.tableView.reloadRows(at: [indexPath], with: .fade)
+            }
+        }
     }
 
-    func showCurrentWeatherData(with weather: WeatherData) {
-        weatherInfoView.setInfo(with: weather)
+    func setPlants(with plants: [PlantViewModel]) {
+        if let plantsCollectionIndex = items.firstIndex(where: { $0 is UserPlantCollectionTableViewCellModel }),
+           let plantsCollectionModel = items[plantsCollectionIndex] as? UserPlantCollectionTableViewCellModel {
+            plantsCollectionModel.plants = plants
+            let indexPath = IndexPath(row: plantsCollectionIndex, section: 0)
+            DispatchQueue.main.async {
+                self.tableView.reloadRows(at: [indexPath], with: .fade)
+            }
+        }
     }
 }
